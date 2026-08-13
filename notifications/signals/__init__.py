@@ -7,9 +7,10 @@ logger = logging.getLogger(__name__)
 def bind_service_signals():
     from core.service_signals import ServiceSignalBindType
     from core.signals import bind_service_signal
-    from notifications.adapters import access_request, approval, communications
+    from notifications.adapters import access_request, api_etl, approval, communications
 
     bindings = (
+        ('api_etl_service.import_finished', api_etl.on_import_finished_signal),
         ('approval_service.request_approval', approval.on_requested),
         ('approval_service.reject', approval.on_rejected),
         ('approval_service.return_for_correction', approval.on_returned),

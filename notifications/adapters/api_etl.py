@@ -17,12 +17,40 @@ _STATUS_TYPES = {
 }
 
 
+def _payload(kwargs):
+    """Unpack ``data=[args, kwargs]`` + ``result`` from a service signal."""
+    data = kwargs.get('data') or []
+    args = data[0] if len(data) > 0 else ()
+    kwds = data[1] if len(data) > 1 else {}
+    return args, (kwds or {}), kwargs.get('result')
+
+
+def on_import_finished_signal(**kwargs):
+    """Bound to ``api_etl_service.import_finished``. api_etl passes everything by keyword;
+    the actor rides on the sender, as in the approval adapter."""
+    try:
+        _args, kwds, _result = _payload(kwargs)
+        on_import_finished(
+            kwds.get('history_id'),
+            kwds.get('status'),
+            getattr(kwargs.get('cls_'), 'user', None),
+            paa_name=kwds.get('paa_name') or '',
+            counts=kwds.get('counts') or {},
+        )
+    except Exception:
+        logger.warning('notifications: api_etl signal unpack failed', exc_info=True)
+
+
 def on_import_finished(history_id, status, user, *, paa_name='', counts=None):
-    """Called by the api_etl adapter shim once a PulledHistory reaches a terminal state."""
+    """Announce a terminal PulledHistory state to everyone who could have started the import.
+
+    Recipients are NOT passed: the audience comes from the type's ``audience_rule``, which
+    resolves the import right (953002). Passing ``recipients`` would bypass it.
+    """
     try:
         key = (status or '').lower()
         mapped = _STATUS_TYPES.get(key)
-        if not mapped or not user:
+        if not mapped:
             return
         type_code, title = mapped
         counts = counts or {}
@@ -34,8 +62,8 @@ def on_import_finished(history_id, status, user, *, paa_name='', counts=None):
             target_route='/imports',
             source_ref=f'api_etl:{history_id}',
             group_key=f'{type_code}:{history_id}',
+            actor=user,
             subject_user=user,
-            recipients=[user],
         )
     except Exception:
         logger.warning('notifications: api_etl.on_import_finished failed', exc_info=True)

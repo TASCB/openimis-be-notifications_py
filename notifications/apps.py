@@ -38,6 +38,10 @@ DEFAULT_CONFIG = {
 ALL_RIGHTS = [280001, 280002, 280003, 280901]
 
 # Seeded idempotently by code; existing rows are never overwritten.
+# api_etl gql_mutation_execute_api_etl_rule_perms — the right that starts an import.
+IMPORT_RIGHT = '953002'
+IMPORT_AUDIENCE = {'kind': 'right', 'right': IMPORT_RIGHT, 'exclude_actor': False}
+
 DEFAULT_TYPES = [
     {
         'code': 'approval.step.assigned',
@@ -77,23 +81,26 @@ DEFAULT_TYPES = [
         'audience_rule': {'kind': 'subject'},
         'is_mandatory': True,
     },
+    # Imports go to everyone holding the right that starts one (api_etl 953002), not just
+    # the initiator: a run finishing at 3am must reach whoever is on shift. exclude_actor
+    # is False because the initiator is exactly who wants the result.
     {
         'code': 'import.completed',
-        'label': 'Your import finished',
+        'label': 'An import finished',
         'category': 'IMPORT', 'severity': 'INFO',
-        'audience_rule': {'kind': 'subject'},
+        'audience_rule': IMPORT_AUDIENCE,
     },
     {
         'code': 'import.partial',
-        'label': 'Your import finished with skipped rows',
+        'label': 'An import finished with skipped rows',
         'category': 'IMPORT', 'severity': 'WARNING',
-        'audience_rule': {'kind': 'subject'},
+        'audience_rule': IMPORT_AUDIENCE,
     },
     {
         'code': 'import.failed',
-        'label': 'Your import failed',
+        'label': 'An import failed',
         'category': 'IMPORT', 'severity': 'WARNING',
-        'audience_rule': {'kind': 'subject'},
+        'audience_rule': IMPORT_AUDIENCE,
     },
     {
         'code': 'comms.post_published',

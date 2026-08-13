@@ -42,6 +42,14 @@ ALL_RIGHTS = [280001, 280002, 280003, 280901]
 IMPORT_RIGHT = '953002'
 IMPORT_AUDIENCE = {'kind': 'right', 'right': IMPORT_RIGHT, 'exclude_actor': False}
 
+# access_request gql_ict_approve_perms / gql_manager_approve_perms. A public applicant has no
+# account until provisioning, so nothing before that moment can be applicant-facing.
+ICT_AUDIENCE = {'kind': 'right', 'right': '230202', 'exclude_actor': False}
+APPROVER_AUDIENCE = {
+    'kind': 'union',
+    'of': [{'kind': 'right', 'right': '230201'}, {'kind': 'right', 'right': '230202'}],
+}
+
 DEFAULT_TYPES = [
     {
         'code': 'approval.step.assigned',
@@ -75,10 +83,16 @@ DEFAULT_TYPES = [
         'is_mandatory': True,
     },
     {
+        'code': 'account.ready_to_provision',
+        'label': 'An access request is awaiting provisioning',
+        'category': 'ACCOUNT', 'severity': 'ACTION',
+        'audience_rule': ICT_AUDIENCE,
+    },
+    {
         'code': 'account.request_rejected',
-        'label': 'Your access request was not approved',
+        'label': 'An access request was not approved',
         'category': 'ACCOUNT', 'severity': 'INFO',
-        'audience_rule': {'kind': 'subject'},
+        'audience_rule': APPROVER_AUDIENCE,
         'is_mandatory': True,
     },
     # Imports go to everyone holding the right that starts one (api_etl 953002), not just

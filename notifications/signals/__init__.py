@@ -16,6 +16,7 @@ def bind_service_signals():
         ('approval_service.return_for_correction', approval.on_returned),
         ('approval_service.finalized', approval.on_finalized),
         ('approval_service.finalized', access_request.on_approval_finalized),
+        ('access_request_service.provision', access_request.on_provisioned),
         ('communications_post_service.publish', communications.on_post_published),
     )
     for name, handler in bindings:

@@ -27,12 +27,20 @@ def _actor(kwargs):
 
 
 def _approvers_for_step(step):
-    """Who can act on this step, from its own ``required_right``."""
+    """Who can act on this step: holders of ``required_right``, narrowed to ``assigned_role``
+    when the step carries one, so the notice reaches the people who can actually sign."""
     from notifications.audience import _users_with_right
     right = getattr(step, 'required_right', None)
     if not right:
         return []
-    return list(_users_with_right(right))
+    users = list(_users_with_right(right))
+    role_id = getattr(step, 'assigned_role_id', None)
+    if role_id:
+        from core.models import UserRole
+        in_role = set(UserRole.objects.filter(
+            role_id=role_id, validity_to__isnull=True).values_list('user_id', flat=True))
+        users = [u for u in users if u.i_user_id in in_role]
+    return users
 
 
 def on_requested(**kwargs):
@@ -50,8 +58,9 @@ def on_requested(**kwargs):
         obj = ApprovalRequest.objects.filter(id=request_id).select_related('flow').first()
         if not obj:
             return
-        step = getattr(obj, 'current_step', None) or obj.steps.filter(
-            is_current=True).first() if hasattr(obj, 'steps') else None
+        # ApprovalStep has no is_current: the live step is the one at current_step_order.
+        step = obj.steps.filter(
+            order=obj.current_step_order, is_deleted=False).first()
         recipients = _approvers_for_step(step) if step else []
         if not recipients:
             return

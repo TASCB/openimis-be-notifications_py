@@ -50,7 +50,65 @@ APPROVER_AUDIENCE = {
     'of': [{'kind': 'right', 'right': '230201'}, {'kind': 'right', 'right': '230202'}],
 }
 
+# case_management: approvers hold 290502, officers 290203; both narrowed to the event's districts.
+CASE_APPROVER_AUDIENCE = {'kind': 'right', 'right': '290502',
+                          'location_scope': 'request', 'exclude_actor': True}
+CASE_OFFICER_AUDIENCE = {'kind': 'right', 'right': '290203',
+                         'location_scope': 'request', 'exclude_actor': True}
+
 DEFAULT_TYPES = [
+    {
+        # Every maker-checker case request lands here: deactivations and payment changes both
+        # park a tasks_management Task and this is what tells the checkers it is waiting.
+        'code': 'case.update.queued',
+        'label': 'A case update is waiting for approval',
+        'category': 'APPROVAL', 'severity': 'ACTION',
+        'audience_rule': CASE_APPROVER_AUDIENCE,
+    },
+    {
+        'code': 'case.payment_change.submitted',
+        'label': 'A payment change is waiting for approval',
+        'category': 'APPROVAL', 'severity': 'ACTION',
+        'audience_rule': CASE_APPROVER_AUDIENCE,
+    },
+    {
+        # exclude_actor False: the submitter is exactly who wants to know the outcome.
+        'code': 'case.payment_change.decided',
+        'label': 'Your payment change was decided',
+        'category': 'APPROVAL', 'severity': 'INFO',
+        'audience_rule': {'kind': 'subject', 'exclude_actor': False},
+    },
+    {
+        # The maker hears how their member / household / representative edit ended.
+        'code': 'case.update.decided',
+        'label': 'Your household or member update was decided',
+        'category': 'APPROVAL', 'severity': 'INFO',
+        'audience_rule': {'kind': 'subject', 'exclude_actor': False},
+    },
+    {
+        'code': 'case.household.deactivated',
+        'label': 'A household was deactivated',
+        'category': 'SYSTEM', 'severity': 'WARNING',
+        'audience_rule': CASE_OFFICER_AUDIENCE,
+    },
+    {
+        'code': 'case.followup.assigned',
+        'label': 'A follow-up was assigned to you',
+        'category': 'SYSTEM', 'severity': 'ACTION',
+        'audience_rule': {'kind': 'subject', 'exclude_actor': False},
+    },
+    {
+        'code': 'case.followup.escalated',
+        'label': 'A follow-up was escalated',
+        'category': 'SYSTEM', 'severity': 'ACTION',
+        'audience_rule': CASE_APPROVER_AUDIENCE,
+    },
+    {
+        'code': 'case.followup.overdue',
+        'label': 'A follow-up is overdue',
+        'category': 'SYSTEM', 'severity': 'WARNING',
+        'audience_rule': {'kind': 'subject', 'exclude_actor': False},
+    },
     {
         'code': 'approval.step.assigned',
         'label': 'An approval step is waiting for you',

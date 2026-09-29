@@ -1,6 +1,7 @@
 """GraphQL surface. Everything is scoped server-side to ``info.context.user``; there is
 deliberately no userId argument anywhere."""
 import graphene
+from core import ExtendedConnection
 from core.schema import OrderedDjangoFilterConnectionField
 from django.core.exceptions import PermissionDenied
 from django.utils.translation import gettext as _
@@ -43,6 +44,7 @@ class NotificationGQLType(DjangoObjectType):
             'is_read': ['exact'],
             'created_at': ['exact', 'gte', 'lte'],
         }
+        connection_class = ExtendedConnection
 
     def resolve_type_code(self, info):
         return self.type.code if self.type_id else None

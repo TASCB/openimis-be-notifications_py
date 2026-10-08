@@ -32,3 +32,10 @@ def bind_service_signals():
             bind_service_signal(name, handler, bind_type=ServiceSignalBindType.AFTER)
         except Exception:
             logger.warning('notifications: could not bind %s', name, exc_info=True)
+
+    try:
+        from tasaf_payment.events import muse_event
+        from notifications.adapters import tasaf_payment
+        muse_event.connect(tasaf_payment.on_muse_event, dispatch_uid='notifications.tasaf_payment.muse_event')
+    except ImportError:
+        pass

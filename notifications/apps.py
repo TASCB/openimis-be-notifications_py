@@ -56,7 +56,38 @@ CASE_APPROVER_AUDIENCE = {'kind': 'right', 'right': '290502',
 CASE_OFFICER_AUDIENCE = {'kind': 'right', 'right': '290203',
                          'location_scope': 'request', 'exclude_actor': True}
 
+# tasaf_payment: whoever can approve (270303) or submit (270304) a paylist follows MUSE's answers.
+PAYMENT_AUDIENCE = {
+    'kind': 'union',
+    'of': [{'kind': 'right', 'right': '270303', 'exclude_actor': False},
+           {'kind': 'right', 'right': '270304', 'exclude_actor': False}],
+}
+
 DEFAULT_TYPES = [
+    {
+        'code': 'payment.muse.batch_status',
+        'label': 'MUSE moved a paylist on (received, accepted, sent to bank)',
+        'category': 'SYSTEM', 'severity': 'INFO',
+        'audience_rule': PAYMENT_AUDIENCE,
+    },
+    {
+        'code': 'payment.muse.batch_rejected',
+        'label': 'MUSE rejected a paylist',
+        'category': 'SYSTEM', 'severity': 'WARNING',
+        'audience_rule': PAYMENT_AUDIENCE,
+    },
+    {
+        'code': 'payment.muse.unapplied',
+        'label': 'Payments on a paylist came back unapplied',
+        'category': 'SYSTEM', 'severity': 'WARNING',
+        'audience_rule': PAYMENT_AUDIENCE,
+    },
+    {
+        'code': 'payment.muse.closed',
+        'label': 'A paylist is closed (every payment settled or unapplied)',
+        'category': 'SYSTEM', 'severity': 'INFO',
+        'audience_rule': PAYMENT_AUDIENCE,
+    },
     {
         # Every maker-checker case request lands here: deactivations and payment changes both
         # park a tasks_management Task and this is what tells the checkers it is waiting.

@@ -37,6 +37,18 @@ def on_muse_event(sender=None, paylist=None, event=None, status=None, descriptio
     elif event == 'batch_status' and status in STATUS_TEXT:
         service.notify('payment.muse.batch_status', subject=f'{STATUS_TEXT[status]} {label}',
                        body=description or '', group_key=f'{key}:{status}', **common)
+    elif event == 'payees_withdrawn':
+        withdrawn, kept, review = (int(kwargs.get(k) or 0) for k in ('withdrawn', 'kept', 'needs_review'))
+        service.notify('payment.muse.batch_rejected',
+                       subject=f'{label}: {withdrawn} payee(s) moved to Case Management',
+                       body=(f'{kept} kept for the resend, {review} need review. '
+                             f'Resend the rest from the paylist page.'),
+                       group_key=f'{key}:WITHDRAWN', **common)
+    elif event == 'withdrawn_lapsed':
+        service.notify('payment.muse.batch_rejected',
+                       subject=f'{label}: {int(kwargs.get("lapsed") or 0)} withdrawn payee(s) not paid by the cycle cut-off',
+                       body='They are left unpaid; the payroll goes on to reconciliation.',
+                       group_key=f'{key}:LAPSED', **common)
     elif event == 'unapplied':
         service.notify('payment.muse.unapplied', subject=f'Payments on {label} came back unapplied',
                        body=f'First reason: {description}' if description else '',

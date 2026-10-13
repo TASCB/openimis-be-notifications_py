@@ -20,6 +20,20 @@ DATA_UPDATE_LABELS = {
 }
 _REPRESENTATIVE_FIELDS = ('role', 'recipient_type')
 
+MOBILE_ACTION_LABELS = {
+    'update_phone': 'Payment phone change',
+    'add_account': 'New payment account',
+    'update_representative': 'Representative change',
+    'add_member': 'New member',
+    'reactivate_household': 'Household reactivation',
+    'reactivate_member': 'Member reactivation',
+}
+
+
+def _pending_label(pending):
+    action = (pending.summary or {}).get('action')
+    return MOBILE_ACTION_LABELS.get(action) or pending.get_update_type_display()
+
 
 def _payload(kwargs):
     data = kwargs.get('data') or []
@@ -162,8 +176,6 @@ def _notify_data_update_queued(task_repr, kwargs):
 
 
 def on_data_update_task_complete(**kwargs):
-    """Tell the submitter how their held edit ended, whether the TMO decided it on Pending
-    updates or someone completed the task in the Tasks inbox: both paths complete the task."""
     from case_management.models import PendingDataUpdate
 
     try:
@@ -172,18 +184,24 @@ def on_data_update_task_complete(**kwargs):
             return
         task_repr = _data(result).get('task') or {}
         task = _load_task(task_repr.get('id'))
-        if task is None or task.business_event not in DATA_UPDATE_LABELS:
+        if task is None:
             return
         pending = PendingDataUpdate.objects.filter(task_id=task.id, is_deleted=False).first()
+        if task.business_event in DATA_UPDATE_LABELS:
+            label = _data_update_label(task.business_event, task.data or {})
+            group = _household_of_task(task)
+        elif pending is not None:
+            label, group = pending.get_update_type_display(), pending.group
+        else:
+            return
         submitter = (pending.submitted_by if pending and pending.submitted_by_id else task.user_created)
         if submitter is None:
             return
         approved = task.status == task.Status.COMPLETED
-        group = _household_of_task(task)
         note = ((pending.summary or {}).get('decision_note') if pending else None) or ''
         notify_on_commit(
             type_code='case.update.decided',
-            subject=f"Your {_data_update_label(task.business_event, task.data or {}).lower()} was "
+            subject=f"Your {label.lower()} was "
                     f"{'approved' if approved else 'rejected'}"
                     + (f" — household {group.code}" if group is not None else ''),
             body=note,
@@ -233,9 +251,10 @@ def on_pending_decided(**kwargs):
         if pending.is_proposal and pending.task_id:
             return
         notify_on_commit(
-            type_code='case.payment_change.decided',
-            subject=f"Your {pending.get_update_type_display().lower()} was "
-                    f"{pending.get_status_display().lower()}",
+            type_code='case.update.decided' if pending.is_proposal else 'case.payment_change.decided',
+            subject=f"Your {_pending_label(pending).lower()} was "
+                    f"{pending.get_status_display().lower()}"
+                    + (f" — household {pending.group.code}" if pending.group_id else ''),
             body=(pending.summary or {}).get('decision_note') or '',
             target_route=HOUSEHOLD_ROUTE.format(id=pending.group_id or ''),
             source_ref=str(pending.id),
@@ -244,6 +263,31 @@ def on_pending_decided(**kwargs):
         )
     except Exception:
         logger.exception('notifications: case pending decision adapter failed')
+
+
+def on_mobile_proposal(**kwargs):
+    from case_management.models import PendingDataUpdate
+
+    try:
+        _, _, result = _payload(kwargs)
+        if not _succeeded(result):
+            return
+        pending = PendingDataUpdate.objects.filter(id=_data(result).get('pending_id')).select_related('group').first()
+        if not pending:
+            return
+        group = pending.group
+        notify_on_commit(
+            type_code='case.update.queued',
+            subject=f'{_pending_label(pending)} from the field app waiting for approval',
+            body=f"Household {group.code}" if group is not None else '',
+            target_route=PENDING_UPDATES_ROUTE,
+            source_ref=str(pending.id),
+            group_key=f'case.pending:{pending.id}',
+            actor=_actor(kwargs),
+            location_ids=_location_ids(group),
+        )
+    except Exception:
+        logger.exception('notifications: case mobile proposal adapter failed')
 
 
 def on_household_deactivated(**kwargs):

@@ -23,6 +23,7 @@ def bind_service_signals():
         ('task_service.complete_task', case_management.on_data_update_task_complete),
         ('case_payment_service.update_details', case_management.on_payment_change),
         ('case_pending_service.decide', case_management.on_pending_decided),
+        ('case_mobile_proposal_service.propose', case_management.on_mobile_proposal),
         ('case_household_service.deactivate_household', case_management.on_household_deactivated),
         ('case_followup_service.add', case_management.on_follow_up_added),
         ('case_followup_service.update_status', case_management.on_follow_up_status),

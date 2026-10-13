@@ -46,11 +46,11 @@ def on_muse_event(sender=None, paylist=None, event=None, status=None, descriptio
                        group_key=f'{key}:WITHDRAWN', **common)
     elif event == 'withdrawn_lapsed':
         service.notify('payment.muse.batch_rejected',
-                       subject=f'{label}: {int(kwargs.get("lapsed") or 0)} withdrawn payee(s) not paid by the cycle cut-off',
+                       subject=f'{label}: {int(kwargs.get("lapsed") or 0)} returned payee(s) not re-paid by the cycle cut-off',
                        body='They are left unpaid; the payroll goes on to reconciliation.',
                        group_key=f'{key}:LAPSED', **common)
     elif event == 'unapplied':
-        service.notify('payment.muse.unapplied', subject=f'Payments on {label} came back unapplied',
+        service.notify('payment.muse.unapplied', subject=f'Payments on {label} came back unapplied; sent to Case Management for correction',
                        body=f'First reason: {description}' if description else '',
                        group_key=f'{key}:UNAPPLIED', **common)
     elif event == 'closed':

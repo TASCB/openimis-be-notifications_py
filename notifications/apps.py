@@ -117,6 +117,12 @@ DEFAULT_TYPES = [
         'audience_rule': {'kind': 'subject', 'exclude_actor': False},
     },
     {
+        'code': 'case.payment_account.verified',
+        'label': 'A changed payment account came back from verification',
+        'category': 'SYSTEM', 'severity': 'INFO',
+        'audience_rule': CASE_OFFICER_AUDIENCE,
+    },
+    {
         'code': 'case.household.deactivated',
         'label': 'A household was deactivated',
         'category': 'SYSTEM', 'severity': 'WARNING',

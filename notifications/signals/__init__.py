@@ -38,5 +38,8 @@ def bind_service_signals():
         from tasaf_payment.events import muse_event
         from notifications.adapters import tasaf_payment
         muse_event.connect(tasaf_payment.on_muse_event, dispatch_uid='notifications.tasaf_payment.muse_event')
+        from tasaf_payment.events import verification_event
+        verification_event.connect(tasaf_payment.on_verification_event,
+                                   dispatch_uid='notifications.tasaf_payment.verification_event')
     except ImportError:
         pass

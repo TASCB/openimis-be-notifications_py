@@ -58,3 +58,27 @@ def on_muse_event(sender=None, paylist=None, event=None, status=None, descriptio
         service.notify('payment.muse.closed', subject=f'{label} closed',
                        body=f"{counts.get('PROCESSED', 0)} paid, {counts.get('UNAPPLIED', 0)} unapplied",
                        group_key=f'{key}:CLOSED', **common)
+
+
+def on_verification_event(sender=None, account=None, status=None, failure_reason=None, **kwargs):
+    from tasaf_payment.models import VerificationStatus
+    from notifications.adapters.case_management import HOUSEHOLD_ROUTE, _location_ids
+
+    if account is None:
+        return
+    group = getattr(getattr(account, 'group_beneficiary', None), 'group', None)
+    household = f'household {group.code}' if group is not None else 'a household'
+    outcome = {
+        VerificationStatus.VERIFIED: 'verified',
+        VerificationStatus.FAILED: 'failed verification',
+        VerificationStatus.MANUAL: 'needs an HQ review of the name',
+    }.get(status, 'came back from verification')
+    NotificationService().notify(
+        'case.payment_account.verified',
+        subject=f'{account.fsp_name} account for {household} {outcome}',
+        body='' if status == VerificationStatus.VERIFIED else (failure_reason or ''),
+        target_route=HOUSEHOLD_ROUTE.format(id=group.id if group is not None else ''),
+        source_ref=str(account.uuid),
+        group_key=f'case.verify:{account.uuid}:{(account.json_ext or {}).get("verification_sent", {}).get("sent_at", "")}',
+        location_ids=_location_ids(group),
+    )

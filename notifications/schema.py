@@ -1,6 +1,7 @@
 """GraphQL surface. Everything is scoped server-side to ``info.context.user``; there is
 deliberately no userId argument anywhere."""
 import graphene
+from django.db.models import Q
 from core import ExtendedConnection
 from core.schema import OrderedDjangoFilterConnectionField
 from django.core.exceptions import PermissionDenied
@@ -30,6 +31,15 @@ class NotificationTypeGQLType(DjangoObjectType):
             'category': ['exact'],
             'is_active': ['exact'],
         }
+
+
+def narrow_notifications(qs, module=None, search=None):
+    if module:
+        qs = qs.filter(type__code__startswith=f'{module}.')
+    term = (search or '').strip()
+    if term:
+        qs = qs.filter(Q(subject__icontains=term) | Q(body__icontains=term))
+    return qs
 
 
 class NotificationGQLType(DjangoObjectType):
@@ -96,7 +106,8 @@ class SetNotificationPreference(graphene.Mutation):
 
 class Query(graphene.ObjectType):
     notifications = OrderedDjangoFilterConnectionField(
-        NotificationGQLType, orderBy=graphene.List(of_type=graphene.String))
+        NotificationGQLType, orderBy=graphene.List(of_type=graphene.String),
+        module=graphene.String(required=False), search=graphene.String(required=False))
     notification_unread_count = graphene.Int()
     notification_types = OrderedDjangoFilterConnectionField(NotificationTypeGQLType)
     notification_preferences = OrderedDjangoFilterConnectionField(NotificationPreferenceGQLType)
@@ -104,7 +115,8 @@ class Query(graphene.ObjectType):
 
     def resolve_notifications(self, info, **kwargs):
         user = _check(info, NotificationsConfig.gql_notification_search_perms)
-        return Notification.objects.filter(recipient=user).select_related('type')
+        qs = Notification.objects.filter(recipient=user).select_related('type')
+        return narrow_notifications(qs, kwargs.get('module'), kwargs.get('search'))
 
     def resolve_notification_unread_count(self, info, **kwargs):
         user = _check(info, NotificationsConfig.gql_notification_search_perms)

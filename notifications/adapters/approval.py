@@ -43,6 +43,23 @@ def _approvers_for_step(step):
     return users
 
 
+def _describe(obj):
+    summary = obj.summary or {}
+    flow = getattr(obj.flow, 'name', None) or getattr(obj.flow, 'code', 'Request')
+    title = summary.get('title') or (f"Account for {summary['full_name']}" if summary.get('full_name') else None)
+    return title or flow, flow
+
+
+def _body(obj, flow, extra=None):
+    summary = obj.summary or {}
+    parts = [flow]
+    if summary.get('reference_code'):
+        parts.append(f"Ref {summary['reference_code']}")
+    if extra:
+        parts.append(extra)
+    return ' · '.join(parts)
+
+
 def on_requested(**kwargs):
     """``approval_service.request_approval`` — tell the people who can act."""
     try:
@@ -65,11 +82,11 @@ def on_requested(**kwargs):
         if not recipients:
             return
 
-        label = getattr(obj.flow, 'name', None) or getattr(obj.flow, 'code', 'Request')
+        title, flow = _describe(obj)
         notify_on_commit(
             type_code='approval.step.assigned',
-            subject=f'{label} is awaiting your approval',
-            body=f'Reference {getattr(obj, "reference_code", "") or request_id}',
+            subject=f'{title} is awaiting your approval',
+            body=_body(obj, flow),
             target_route=route_for_approval(obj),
             source_ref=f'approval:{request_id}',
             group_key=f'approval.step.assigned:{request_id}:{getattr(step, "id", "")}',
@@ -80,7 +97,7 @@ def on_requested(**kwargs):
         logger.warning('notifications: approval.on_requested failed', exc_info=True)
 
 
-def _notify_subject(kwargs, type_code, subject_line):
+def _notify_subject(kwargs, type_code, subject_line, extra=None):
     try:
         _args, _kwds, result = _payload(kwargs)
         request = _request_of(result)
@@ -99,11 +116,11 @@ def _notify_subject(kwargs, type_code, subject_line):
         if not owner:
             return
 
-        label = getattr(obj.flow, 'name', None) or getattr(obj.flow, 'code', 'Request')
+        title, flow = _describe(obj)
         notify_on_commit(
             type_code=type_code,
-            subject=subject_line.format(label=label),
-            body=f'Reference {getattr(obj, "reference_code", "") or request_id}',
+            subject=subject_line.format(label=title),
+            body=_body(obj, flow, extra(obj) if extra else None),
             target_route=route_for_approval(obj),
             source_ref=f'approval:{request_id}',
             group_key=f'{type_code}:{request_id}',
@@ -122,5 +139,15 @@ def on_returned(**kwargs):
     _notify_subject(kwargs, 'approval.returned', '{label} was returned for correction')
 
 
+def _cancel_reason(obj):
+    reason = (obj.summary or {}).get('cancel_reason')
+    return f'Reason: {reason}' if reason else None
+
+
 def on_finalized(**kwargs):
-    _notify_subject(kwargs, 'approval.finalized', '{label} was finalised')
+    _args, _kwds, result = _payload(kwargs)
+    decision = str((_request_of(result) or {}).get('decision') or '').upper()
+    if decision == 'APPROVED':
+        _notify_subject(kwargs, 'approval.finalized', '{label} was approved')
+    elif decision == 'CANCELLED':
+        _notify_subject(kwargs, 'approval.finalized', '{label} was cancelled', extra=_cancel_reason)

@@ -74,7 +74,9 @@ def on_approval_finalized(**kwargs):
             return
 
         approved = str(getattr(obj, 'status', '')).upper() == 'APPROVED'
-        reference = getattr(obj, 'reference_code', '') or request_id
+        summary = obj.summary or {}
+        who = f" for {summary['full_name']}" if summary.get('full_name') else ''
+        body = f"Ref {summary['reference_code']}" if summary.get('reference_code') else ''
         common = {
             'target_route': route_for_approval(obj),
             'source_ref': f'access_request:{request_id}',
@@ -82,16 +84,16 @@ def on_approval_finalized(**kwargs):
         if approved:
             notify_on_commit(
                 type_code='account.ready_to_provision',
-                subject='An access request is approved and awaiting provisioning',
-                body=f'Reference {reference}',
+                subject=f'Access request{who} is approved and awaiting provisioning',
+                body=body,
                 group_key=f'account.ready_to_provision:{request_id}',
                 **common,
             )
         else:
             notify_on_commit(
                 type_code='account.request_rejected',
-                subject='An access request was not approved',
-                body=f'Reference {reference}',
+                subject=f'Access request{who} was not approved',
+                body=body,
                 group_key=f'account.request_rejected:{request_id}',
                 **common,
             )

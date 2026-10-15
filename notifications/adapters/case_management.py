@@ -7,7 +7,7 @@ from notifications.services import notify_on_commit
 
 logger = logging.getLogger(__name__)
 
-HOUSEHOLD_ROUTE = '/caseManagement/household/{id}'
+HOUSEHOLD_ROUTE = '/groups/group/{id}'
 FOLLOW_UP_ROUTE = '/caseManagement/followUps/{id}'
 PENDING_UPDATES_ROUTE = '/caseManagement/pendingUpdates'
 

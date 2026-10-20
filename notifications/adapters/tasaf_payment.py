@@ -8,7 +8,9 @@ logger = logging.getLogger(__name__)
 STATUS_TEXT = {
     'RECEIVED': 'MUSE received',
     'ACCEPTED': 'MUSE accepted',
-    'SENT_TO_BANK': 'MUSE sent to the bank',
+    'SENT_TO_BANK': 'MUSE sent to the bank / MNO',
+    'ACCEPTED_BY_BANK': 'Bank / MNO accepted',
+    'PROCESSED_BY_BANK': 'Bank / MNO processed',
 }
 
 

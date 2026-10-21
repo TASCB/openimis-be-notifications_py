@@ -30,6 +30,7 @@ DEFAULT_CONFIG = {
         'training.Training': '/trainings/training/{id}',
         'social_protection.Beneficiary': '/groups/group/{id}',
         'communications.CommunicationActivity': '/communications/activities/activity/{id}',
+        'tasaf_payment.MuseChangeRequest': '/tasafPayment/workspace?tab=muse&integration={integration}',
     },
     # used when the domain has no mapping, or the domain record id is unknown
     'fallback_approval_route': '/approval/request/{request_id}',

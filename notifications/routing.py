@@ -6,6 +6,11 @@ from notifications.apps import NotificationsConfig
 logger = logging.getLogger(__name__)
 
 
+class _Blank(dict):
+    def __missing__(self, key):
+        return ''
+
+
 def route_for_approval(approval_request):
     try:
         domain = getattr(approval_request, 'domain', None) or getattr(
@@ -15,7 +20,9 @@ def route_for_approval(approval_request):
 
         template = routes.get(domain) if domain else None
         if template and object_id:
-            return template.format(id=object_id)
+            summary = getattr(approval_request, 'summary', None) or {}
+            values = {k: v for k, v in summary.items() if isinstance(v, (str, int))} if isinstance(summary, dict) else {}
+            return template.format_map(_Blank(values, id=object_id))
 
         fallback = getattr(NotificationsConfig, 'fallback_approval_route',
                            '/approval/request/{request_id}')

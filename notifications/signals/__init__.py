@@ -41,5 +41,8 @@ def bind_service_signals():
         from tasaf_payment.events import verification_event
         verification_event.connect(tasaf_payment.on_verification_event,
                                    dispatch_uid='notifications.tasaf_payment.verification_event')
+        from tasaf_payment.events import accounts_withdrawn
+        accounts_withdrawn.connect(tasaf_payment.on_accounts_withdrawn,
+                                   dispatch_uid='notifications.tasaf_payment.accounts_withdrawn')
     except ImportError:
         pass

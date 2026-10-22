@@ -84,3 +84,54 @@ def on_verification_event(sender=None, account=None, status=None, failure_reason
         group_key=f'case.verify:{account.uuid}:{(account.json_ext or {}).get("verification_sent", {}).get("sent_at", "")}',
         location_ids=_location_ids(group),
     )
+
+
+WITHDRAWN_ROUTE = '/caseManagement/accountCorrections?reason=WITHDRAWN'
+WITHDRAWN_TEXT = {
+    'PROVIDER_MISMATCH': "number and provider don't match",
+    'INVALID_MOBILE': 'invalid mobile number',
+}
+
+
+def _district_chains(accounts):
+    from location.models import Location
+    from tasaf_payment.models import PaymentAccount
+
+    located = dict(PaymentAccount.objects.filter(id__in=[a.id for a in accounts])
+                   .values_list('id', 'group_beneficiary__group__location_id'))
+    locations = Location.objects.filter(id__in={i for i in located.values() if i}).select_related(
+        'parent__parent__parent')
+    chains = {}
+    for location in locations:
+        chain, node = [], location
+        while node is not None and len(chain) < 10:
+            chain.append(node)
+            node = node.parent
+        district = next((n for n in chain if n.type == 'D'), chain[-1])
+        chains[location.id] = chain[chain.index(district):]
+    return {account_id: chains.get(location_id) for account_id, location_id in located.items()}
+
+
+def on_accounts_withdrawn(sender=None, accounts=None, user=None, **kwargs):
+    from collections import Counter
+
+    if not accounts:
+        return
+    by_district, chains = {}, _district_chains(accounts)
+    for account in accounts:
+        chain = chains.get(account.id)
+        by_district.setdefault(chain[0].id if chain else None, (chain, []))[1].append(account)
+    for district_id, (chain, members) in by_district.items():
+        marker = (members[0].json_ext or {}).get('verification_withdrawn') or {}
+        reasons = Counter(((a.json_ext or {}).get('verification_withdrawn') or {}).get('code') for a in members)
+        where = f' in {chain[0].name}' if chain else ''
+        NotificationService().notify(
+            'case.account.withdrawn',
+            subject=f'{len(members)} payment account(s){where} were not sent to GePG',
+            body='; '.join(f'{n} {WITHDRAWN_TEXT.get(code, code or "other")}' for code, n in reasons.most_common())
+                 + '. Correct them in Case Management ▸ Accounts to correct.',
+            target_route=WITHDRAWN_ROUTE,
+            group_key=f'gepg.withdrawn:{marker.get("at", "")}:{district_id or "-"}',
+            actor=user,
+            location_ids=[n.id for n in chain] if chain else [],
+        )

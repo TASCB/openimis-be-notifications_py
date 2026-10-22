@@ -46,3 +46,29 @@ class VerificationEventAdapterTest(SimpleTestCase):
         call = self._notify(VerificationStatus.VERIFIED, 'stale text')
         self.assertTrue(call.kwargs['subject'].endswith(' verified'))
         self.assertEqual(call.kwargs['body'], '')
+
+
+class AccountsWithdrawnAdapterTest(SimpleTestCase):
+    def test_one_message_per_district_with_the_reasons(self):
+        region = SimpleNamespace(id=1, name='Arusha', type='R')
+        meru = SimpleNamespace(id=7, name='Meru', type='D')
+        moshi = SimpleNamespace(id=8, name='Moshi', type='D')
+
+        def account(pk, code):
+            return SimpleNamespace(id=pk, json_ext={'verification_withdrawn': {'code': code, 'at': 'T1'}})
+
+        accounts = [account(1, 'PROVIDER_MISMATCH'), account(2, 'PROVIDER_MISMATCH'),
+                    account(3, 'INVALID_MOBILE'), account(4, 'PROVIDER_MISMATCH')]
+        chains = {1: [meru, region], 2: [meru, region], 3: [meru, region], 4: [moshi, region]}
+        with mock.patch.object(tasaf_payment, '_district_chains', return_value=chains), \
+                mock.patch.object(tasaf_payment, 'NotificationService') as service:
+            tasaf_payment.on_accounts_withdrawn(accounts=accounts, user=None)
+        calls = {c.kwargs['location_ids'][0]: c for c in service.return_value.notify.call_args_list}
+        self.assertEqual(set(calls), {7, 8})
+        meru_call = calls[7]
+        self.assertEqual(meru_call.args[0], 'case.account.withdrawn')
+        self.assertEqual(meru_call.kwargs['subject'], '3 payment account(s) in Meru were not sent to GePG')
+        self.assertTrue(meru_call.kwargs['body'].startswith("2 number and provider don't match; 1 invalid mobile number."))
+        self.assertEqual(meru_call.kwargs['location_ids'], [7, 1])
+        self.assertEqual(meru_call.kwargs['target_route'], '/caseManagement/accountCorrections?reason=WITHDRAWN')
+        self.assertEqual(meru_call.kwargs['group_key'], 'gepg.withdrawn:T1:7')

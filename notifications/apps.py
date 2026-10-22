@@ -57,6 +57,10 @@ CASE_APPROVER_AUDIENCE = {'kind': 'right', 'right': '290502',
 CASE_OFFICER_AUDIENCE = {'kind': 'right', 'right': '290203',
                          'location_scope': 'request', 'exclude_actor': True}
 
+# case_management gql_account_correction_search_perms: who works Accounts to correct.
+ACCOUNT_CORRECTION_AUDIENCE = {'kind': 'right', 'right': '290205',
+                               'location_scope': 'request', 'exclude_actor': False}
+
 # tasaf_payment: whoever can approve (270303) or submit (270304) a paylist follows MUSE's answers.
 PAYMENT_AUDIENCE = {
     'kind': 'union',
@@ -122,6 +126,12 @@ DEFAULT_TYPES = [
         'label': 'A changed payment account came back from verification',
         'category': 'SYSTEM', 'severity': 'INFO',
         'audience_rule': CASE_OFFICER_AUDIENCE,
+    },
+    {
+        'code': 'case.account.withdrawn',
+        'label': 'Payment accounts were held back from GePG verification',
+        'category': 'SYSTEM', 'severity': 'ACTION',
+        'audience_rule': ACCOUNT_CORRECTION_AUDIENCE,
     },
     {
         'code': 'case.household.deactivated',

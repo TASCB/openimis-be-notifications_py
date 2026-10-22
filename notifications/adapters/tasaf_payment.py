@@ -135,3 +135,23 @@ def on_accounts_withdrawn(sender=None, accounts=None, user=None, **kwargs):
             actor=user,
             location_ids=[n.id for n in chain] if chain else [],
         )
+
+
+GEPG_REQUESTS_ROUTE = '/tasafPayment/workspace?tab=verification&verification=gepg'
+DECISION_TEXT = (('VERIFIED', 'verified'), ('FAILED', 'failed'), ('MANUAL', 'need review'))
+
+
+def on_gepg_answered(sender=None, request=None, counts=None, **kwargs):
+    if request is None:
+        return
+    counts = counts or {}
+    parts = [f'{counts.get(code, 0)} {text}' for code, text in DECISION_TEXT]
+    waiting = counts.get('PENDING', 0)
+    NotificationService().notify(
+        'payment.gepg.answered',
+        subject=f'GePG answered {request.acc_verif_id} ({request.fsp_code}): ' + ', '.join(parts),
+        body=f'{waiting} account(s) still waiting for an answer.' if waiting else '',
+        target_route=GEPG_REQUESTS_ROUTE,
+        source_ref=request.acc_verif_id,
+        group_key=f'gepg.answered:{request.acc_verif_id}:{sum(counts.values()) - waiting}',
+    )

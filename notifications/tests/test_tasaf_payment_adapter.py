@@ -72,3 +72,15 @@ class AccountsWithdrawnAdapterTest(SimpleTestCase):
         self.assertEqual(meru_call.kwargs['location_ids'], [7, 1])
         self.assertEqual(meru_call.kwargs['target_route'], '/caseManagement/accountCorrections?reason=WITHDRAWN')
         self.assertEqual(meru_call.kwargs['group_key'], 'gepg.withdrawn:T1:7')
+
+
+class GepgAnsweredAdapterTest(SimpleTestCase):
+    def test_the_answer_counts_go_in_the_subject(self):
+        request = SimpleNamespace(acc_verif_id='TV2026102209', fsp_code='MPESA')
+        with mock.patch.object(tasaf_payment, 'NotificationService') as service:
+            tasaf_payment.on_gepg_answered(request=request, counts={'VERIFIED': 3, 'FAILED': 1, 'PENDING': 2})
+        call = service.return_value.notify.call_args
+        self.assertEqual(call.args[0], 'payment.gepg.answered')
+        self.assertEqual(call.kwargs['subject'], 'GePG answered TV2026102209 (MPESA): 3 verified, 1 failed, 0 need review')
+        self.assertEqual(call.kwargs['body'], '2 account(s) still waiting for an answer.')
+        self.assertEqual(call.kwargs['target_route'], '/tasafPayment/workspace?tab=verification&verification=gepg')

@@ -61,6 +61,9 @@ CASE_OFFICER_AUDIENCE = {'kind': 'right', 'right': '290203',
 ACCOUNT_CORRECTION_AUDIENCE = {'kind': 'right', 'right': '290205',
                                'location_scope': 'request', 'exclude_actor': False}
 
+# tasaf_payment gql_run_verification_perms: who sends accounts to GePG hears its answers.
+VERIFICATION_AUDIENCE = {'kind': 'right', 'right': '270101', 'exclude_actor': False}
+
 # tasaf_payment: whoever can approve (270303) or submit (270304) a paylist follows MUSE's answers.
 PAYMENT_AUDIENCE = {
     'kind': 'union',
@@ -74,6 +77,12 @@ DEFAULT_TYPES = [
         'label': 'MUSE moved a paylist on (received, accepted, sent to bank)',
         'category': 'SYSTEM', 'severity': 'INFO',
         'audience_rule': PAYMENT_AUDIENCE,
+    },
+    {
+        'code': 'payment.gepg.answered',
+        'label': 'GePG answered an account verification request',
+        'category': 'SYSTEM', 'severity': 'INFO',
+        'audience_rule': VERIFICATION_AUDIENCE,
     },
     {
         'code': 'payment.muse.batch_rejected',

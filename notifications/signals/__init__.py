@@ -44,5 +44,8 @@ def bind_service_signals():
         from tasaf_payment.events import accounts_withdrawn
         accounts_withdrawn.connect(tasaf_payment.on_accounts_withdrawn,
                                    dispatch_uid='notifications.tasaf_payment.accounts_withdrawn')
+        from tasaf_payment.events import gepg_answered
+        gepg_answered.connect(tasaf_payment.on_gepg_answered,
+                              dispatch_uid='notifications.tasaf_payment.gepg_answered')
     except ImportError:
         pass

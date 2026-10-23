@@ -14,6 +14,7 @@ class ApprovalWordingTest(SimpleTestCase):
         objects.filter.return_value.select_related.return_value.first.return_value = request
         with mock.patch('approval.models.ApprovalRequest.objects', objects), \
                 mock.patch.object(approval, 'notify_on_commit') as notify, \
+                mock.patch.object(approval, '_close_step_notices'), \
                 mock.patch.object(approval, 'route_for_approval', return_value='/x'):
             approval.on_finalized(result={'success': True, 'data': {'id': 'r-1', 'decision': decision}}, data=[(), {}])
         return notify
@@ -66,3 +67,22 @@ class AccessRequestWordingTest(SimpleTestCase):
         kwargs = self._finalize('REJECTED')
         self.assertEqual(kwargs['subject'], 'Access request for Asha Juma was not approved')
         self.assertNotIn('r-9', kwargs['body'])
+
+
+class ApprovalNoticeLifecycleTest(SimpleTestCase):
+    def test_a_decided_request_closes_its_waiting_notices(self):
+        with mock.patch.object(approval, '_close_step_notices') as close, \
+                mock.patch.object(approval, '_notify_subject'):
+            approval.on_finalized(result={'success': True, 'data': {'id': 'r-1', 'decision': 'APPROVED'}}, data=[(), {}])
+        close.assert_called_once_with('r-1')
+
+    def test_a_step_approved_mid_flow_notifies_the_next_step(self):
+        with mock.patch.object(approval, '_notify_current_step') as notify:
+            approval.on_approved(result={'success': True, 'data': {'id': 'r-1', 'status': 'PENDING'}}, data=[(), {}])
+        notify.assert_called_once()
+        self.assertEqual(notify.call_args.args[0], 'r-1')
+
+    def test_the_last_approval_is_left_to_finalized(self):
+        with mock.patch.object(approval, '_notify_current_step') as notify:
+            approval.on_approved(result={'success': True, 'data': {'id': 'r-1', 'status': 'APPROVED'}}, data=[(), {}])
+        notify.assert_not_called()

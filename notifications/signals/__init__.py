@@ -13,6 +13,7 @@ def bind_service_signals():
     bindings = (
         ('api_etl_service.import_finished', api_etl.on_import_finished_signal),
         ('approval_service.request_approval', approval.on_requested),
+        ('approval_service.approve', approval.on_approved),
         ('approval_service.reject', approval.on_rejected),
         ('approval_service.return_for_correction', approval.on_returned),
         ('approval_service.finalized', approval.on_finalized),

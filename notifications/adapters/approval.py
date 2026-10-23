@@ -60,41 +60,78 @@ def _body(obj, flow, extra=None):
     return ' · '.join(parts)
 
 
+STEP_ASSIGNED = 'approval.step.assigned'
+
+
+def _step_key(request_id, step):
+    return f'{STEP_ASSIGNED}:{request_id}:{getattr(step, "id", "")}'
+
+
+def _close_step_notices(request_id, keep_key=None):
+    from django.utils import timezone
+    from notifications.models import Notification
+    qs = Notification.objects.filter(
+        source_ref=f'approval:{request_id}', type__code=STEP_ASSIGNED, is_read=False)
+    if keep_key:
+        qs = qs.exclude(group_key=keep_key)
+    qs.update(is_read=True, read_at=timezone.now())
+
+
+def _request_id(kwargs):
+    _args, _kwds, result = _payload(kwargs)
+    request = _request_of(result)
+    if not request:
+        return None
+    return request.get('id') if isinstance(request, dict) else getattr(request, 'id', None)
+
+
+def _notify_current_step(request_id, kwargs):
+    from approval.models import ApprovalRequest
+    obj = ApprovalRequest.objects.filter(id=request_id).select_related('flow').first()
+    if not obj:
+        return
+    # ApprovalStep has no is_current: the live step is the one at current_step_order.
+    step = obj.steps.filter(order=obj.current_step_order, is_deleted=False).first()
+    if not step:
+        return
+    key = _step_key(request_id, step)
+    _close_step_notices(request_id, keep_key=key)
+    recipients = _approvers_for_step(step)
+    if not recipients:
+        return
+
+    title, flow = _describe(obj)
+    notify_on_commit(
+        type_code=STEP_ASSIGNED,
+        subject=f'{title} is awaiting your approval',
+        body=_body(obj, flow),
+        target_route=route_for_approval(obj),
+        source_ref=f'approval:{request_id}',
+        group_key=key,
+        actor=_actor(kwargs),
+        recipients=recipients,
+    )
+
+
 def on_requested(**kwargs):
     """``approval_service.request_approval`` — tell the people who can act."""
     try:
-        _args, _kwds, result = _payload(kwargs)
-        request = _request_of(result)
-        if not request:
-            return
-        request_id = request.get('id') if isinstance(request, dict) else getattr(request, 'id', None)
-        if not request_id:
-            return
-
-        from approval.models import ApprovalRequest
-        obj = ApprovalRequest.objects.filter(id=request_id).select_related('flow').first()
-        if not obj:
-            return
-        # ApprovalStep has no is_current: the live step is the one at current_step_order.
-        step = obj.steps.filter(
-            order=obj.current_step_order, is_deleted=False).first()
-        recipients = _approvers_for_step(step) if step else []
-        if not recipients:
-            return
-
-        title, flow = _describe(obj)
-        notify_on_commit(
-            type_code='approval.step.assigned',
-            subject=f'{title} is awaiting your approval',
-            body=_body(obj, flow),
-            target_route=route_for_approval(obj),
-            source_ref=f'approval:{request_id}',
-            group_key=f'approval.step.assigned:{request_id}:{getattr(step, "id", "")}',
-            actor=_actor(kwargs),
-            recipients=recipients,
-        )
+        request_id = _request_id(kwargs)
+        if request_id:
+            _notify_current_step(request_id, kwargs)
     except Exception:
         logger.warning('notifications: approval.on_requested failed', exc_info=True)
+
+
+def on_approved(**kwargs):
+    try:
+        _args, _kwds, result = _payload(kwargs)
+        data = _request_of(result) or {}
+        request_id = data.get('id') if isinstance(data, dict) else None
+        if request_id and str(data.get('status', '')).upper() == 'PENDING':
+            _notify_current_step(request_id, kwargs)
+    except Exception:
+        logger.warning('notifications: approval.on_approved failed', exc_info=True)
 
 
 def _notify_subject(kwargs, type_code, subject_line, extra=None):
@@ -131,11 +168,22 @@ def _notify_subject(kwargs, type_code, subject_line, extra=None):
         logger.warning('notifications: approval.%s failed', type_code, exc_info=True)
 
 
+def _close_all(kwargs):
+    try:
+        request_id = _request_id(kwargs)
+        if request_id:
+            _close_step_notices(request_id)
+    except Exception:
+        logger.warning('notifications: closing approval notices failed', exc_info=True)
+
+
 def on_rejected(**kwargs):
+    _close_all(kwargs)
     _notify_subject(kwargs, 'approval.rejected', '{label} was rejected')
 
 
 def on_returned(**kwargs):
+    _close_all(kwargs)
     _notify_subject(kwargs, 'approval.returned', '{label} was returned for correction')
 
 
@@ -145,6 +193,7 @@ def _cancel_reason(obj):
 
 
 def on_finalized(**kwargs):
+    _close_all(kwargs)
     _args, _kwds, result = _payload(kwargs)
     decision = str((_request_of(result) or {}).get('decision') or '').upper()
     if decision == 'APPROVED':

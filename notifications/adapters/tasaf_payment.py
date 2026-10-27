@@ -146,6 +146,8 @@ def on_gepg_answered(sender=None, request=None, counts=None, **kwargs):
         return
     counts = counts or {}
     parts = [f'{counts.get(code, 0)} {text}' for code, text in DECISION_TEXT]
+    if counts.get('UNCHECKED'):
+        parts.append(f"{counts['UNCHECKED']} not checked (provider did not answer)")
     waiting = counts.get('PENDING', 0)
     NotificationService().notify(
         'payment.gepg.answered',

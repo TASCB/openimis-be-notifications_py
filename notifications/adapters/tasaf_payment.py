@@ -155,3 +155,17 @@ def on_gepg_answered(sender=None, request=None, counts=None, **kwargs):
         source_ref=request.acc_verif_id,
         group_key=f'gepg.answered:{request.acc_verif_id}:{sum(counts.values()) - waiting}',
     )
+
+
+def on_gepg_unanswered(sender=None, request=None, minutes=None, **kwargs):
+    if request is None:
+        return
+    NotificationService().notify(
+        'payment.gepg.unanswered',
+        subject=f'GePG has not answered {request.acc_verif_id} ({request.fsp_code}) after {minutes} minutes',
+        body=f'{request.item_count} account(s) are waiting. Give GePG the request ID '
+             f'{request.esb_request_id or request.acc_verif_id} to trace it.',
+        target_route=GEPG_REQUESTS_ROUTE,
+        source_ref=request.acc_verif_id,
+        group_key=f'gepg.unanswered:{request.acc_verif_id}',
+    )

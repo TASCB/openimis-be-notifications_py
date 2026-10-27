@@ -84,3 +84,14 @@ class GepgAnsweredAdapterTest(SimpleTestCase):
         self.assertEqual(call.kwargs['subject'], 'GePG answered TV2026102209 (MPESA): 3 verified, 1 failed, 0 need review')
         self.assertEqual(call.kwargs['body'], '2 account(s) still waiting for an answer.')
         self.assertEqual(call.kwargs['target_route'], '/tasafPayment/workspace?tab=verification&verification=gepg')
+
+    def test_an_unanswered_request_names_what_to_trace(self):
+        request = SimpleNamespace(acc_verif_id='TV2026102714', fsp_code='MPESA', item_count=4,
+                                  esb_request_id='f690e0f8')
+        with mock.patch.object(tasaf_payment, 'NotificationService') as service:
+            tasaf_payment.on_gepg_unanswered(request=request, minutes=30)
+        call = service.return_value.notify.call_args
+        self.assertEqual(call.args[0], 'payment.gepg.unanswered')
+        self.assertEqual(call.kwargs['subject'], 'GePG has not answered TV2026102714 (MPESA) after 30 minutes')
+        self.assertIn('f690e0f8', call.kwargs['body'])
+        self.assertEqual(call.kwargs['group_key'], 'gepg.unanswered:TV2026102714')

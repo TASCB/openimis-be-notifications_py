@@ -85,6 +85,12 @@ DEFAULT_TYPES = [
         'audience_rule': VERIFICATION_AUDIENCE,
     },
     {
+        'code': 'payment.gepg.unanswered',
+        'label': 'GePG has not answered an account verification request',
+        'category': 'SYSTEM', 'severity': 'WARNING',
+        'audience_rule': VERIFICATION_AUDIENCE,
+    },
+    {
         'code': 'payment.muse.batch_rejected',
         'label': 'MUSE rejected a paylist',
         'category': 'SYSTEM', 'severity': 'WARNING',

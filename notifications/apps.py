@@ -71,6 +71,8 @@ PAYMENT_AUDIENCE = {
            {'kind': 'right', 'right': '270304', 'exclude_actor': False}],
 }
 
+UNAPPLIED_AUDIENCE = {'kind': 'right', 'right': '270402', 'exclude_actor': False}
+
 DEFAULT_TYPES = [
     {
         'code': 'payment.muse.batch_status',
@@ -99,8 +101,8 @@ DEFAULT_TYPES = [
     {
         'code': 'payment.muse.unapplied',
         'label': 'Payments on a paylist came back unapplied',
-        'category': 'SYSTEM', 'severity': 'WARNING',
-        'audience_rule': PAYMENT_AUDIENCE,
+        'category': 'SYSTEM', 'severity': 'ACTION',
+        'audience_rule': UNAPPLIED_AUDIENCE,
     },
     {
         'code': 'payment.muse.closed',

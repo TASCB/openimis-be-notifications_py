@@ -14,6 +14,9 @@ STATUS_TEXT = {
 }
 
 
+UNAPPLIED_ROUTE = '/tasafPayment/returnFeedback'
+
+
 def _label(paylist):
     return paylist.muse_batch_reference or f'paylist {str(paylist.uuid)[:8]}'
 
@@ -52,9 +55,11 @@ def on_muse_event(sender=None, paylist=None, event=None, status=None, descriptio
                        body='They are left unpaid; the payroll goes on to reconciliation.',
                        group_key=f'{key}:LAPSED', **common)
     elif event == 'unapplied':
-        service.notify('payment.muse.unapplied', subject=f'Payments on {label} came back unapplied; sent to Case Management for correction',
+        service.notify('payment.muse.unapplied',
+                       subject=f'Payments on {label} came back unapplied; repay, send to Case or withdraw them',
                        body=f'First reason: {description}' if description else '',
-                       group_key=f'{key}:UNAPPLIED', **common)
+                       group_key=f'{key}:UNAPPLIED',
+                       **{**common, 'target_route': UNAPPLIED_ROUTE})
     elif event == 'closed':
         counts = _counts(paylist)
         service.notify('payment.muse.closed', subject=f'{label} closed',

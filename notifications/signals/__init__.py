@@ -48,6 +48,9 @@ def bind_service_signals():
         from tasaf_payment.events import gepg_answered
         gepg_answered.connect(tasaf_payment.on_gepg_answered,
                               dispatch_uid='notifications.tasaf_payment.gepg_answered')
+        from tasaf_payment.events import account_check_done
+        account_check_done.connect(tasaf_payment.on_account_check_done,
+                                   dispatch_uid='notifications.tasaf_payment.account_check_done')
         from tasaf_payment.events import gepg_unanswered
         gepg_unanswered.connect(tasaf_payment.on_gepg_unanswered,
                                 dispatch_uid='notifications.tasaf_payment.gepg_unanswered')

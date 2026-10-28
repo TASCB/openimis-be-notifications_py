@@ -176,3 +176,26 @@ def on_gepg_unanswered(sender=None, request=None, minutes=None, **kwargs):
         source_ref=request.acc_verif_id,
         group_key=f'gepg.unanswered:{request.acc_verif_id}',
     )
+
+
+ACCOUNT_CHECK_ROUTE = '/tasafPayment/workspace?tab=verification&verification=check'
+
+
+def on_account_check_done(sender=None, job=None, **kwargs):
+    if job is None or not job.created_by_user_id:
+        return
+    from core.models import User
+    uploader = User.objects.filter(id=job.created_by_user_id).first()
+    if uploader is None:
+        return
+    from tasaf_payment.models import AccountCheckResult
+    verified = job.rows.filter(result=AccountCheckResult.VERIFIED).count()
+    NotificationService().notify(
+        'payment.account_check.done',
+        subject=f'Bulk account check ready: {job.file_name or job.uuid} ({verified} of {job.valid_count} verified)',
+        body='Open Bulk check to download the results.',
+        target_route=ACCOUNT_CHECK_ROUTE,
+        source_ref=str(job.uuid),
+        group_key=f'account_check.done:{job.uuid}',
+        subject_user=uploader,
+    )

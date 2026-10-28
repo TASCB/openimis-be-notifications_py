@@ -87,6 +87,12 @@ DEFAULT_TYPES = [
         'audience_rule': VERIFICATION_AUDIENCE,
     },
     {
+        'code': 'payment.account_check.done',
+        'label': 'A bulk account check has its results',
+        'category': 'SYSTEM', 'severity': 'INFO',
+        'audience_rule': {'kind': 'subject'},
+    },
+    {
         'code': 'payment.gepg.unanswered',
         'label': 'GePG has not answered an account verification request',
         'category': 'SYSTEM', 'severity': 'WARNING',

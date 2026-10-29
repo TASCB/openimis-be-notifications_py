@@ -72,6 +72,7 @@ PAYMENT_AUDIENCE = {
 }
 
 UNAPPLIED_AUDIENCE = {'kind': 'right', 'right': '270402', 'exclude_actor': False}
+UNAPPLIED_MANAGER_AUDIENCE = {'kind': 'right', 'right': '270403', 'exclude_actor': False}
 
 DEFAULT_TYPES = [
     {
@@ -109,6 +110,12 @@ DEFAULT_TYPES = [
         'label': 'Payments on a paylist came back unapplied',
         'category': 'SYSTEM', 'severity': 'ACTION',
         'audience_rule': UNAPPLIED_AUDIENCE,
+    },
+    {
+        'code': 'payment.muse.unapplied_overdue',
+        'label': 'Unapplied payments are still undecided after the reminder delay',
+        'category': 'SYSTEM', 'severity': 'ACTION',
+        'audience_rule': UNAPPLIED_MANAGER_AUDIENCE,
     },
     {
         'code': 'payment.muse.closed',

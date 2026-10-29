@@ -1,5 +1,6 @@
 """tasaf_payment MUSE events (tasaf_payment.events.muse_event) -> payment roles."""
 import logging
+from datetime import datetime, timezone
 
 from notifications.services import NotificationService
 
@@ -59,6 +60,13 @@ def on_muse_event(sender=None, paylist=None, event=None, status=None, descriptio
                        subject=f'Payments on {label} came back unapplied; repay, send to Case or withdraw them',
                        body=f'First reason: {description}' if description else '',
                        group_key=f'{key}:UNAPPLIED',
+                       **{**common, 'target_route': UNAPPLIED_ROUTE})
+    elif event == 'unapplied_overdue':
+        service.notify('payment.muse.unapplied_overdue',
+                       subject=f'{int(kwargs.get("count") or 0)} unapplied payment(s) on {label} undecided '
+                               f'for more than {int(kwargs.get("days") or 0)} days',
+                       body='Repay, send to Case or withdraw them, or they lapse at the cycle cut-off.',
+                       group_key=f'{key}:UNAPPLIED_OVERDUE:{datetime.now(tz=timezone.utc):%Y%m%d}',
                        **{**common, 'target_route': UNAPPLIED_ROUTE})
     elif event == 'closed':
         counts = _counts(paylist)

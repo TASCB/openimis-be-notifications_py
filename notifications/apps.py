@@ -258,6 +258,18 @@ DEFAULT_TYPES = [
         'category': 'COMMS', 'severity': 'INFO',
         'audience_rule': {'kind': 'subject'},
     },
+    {
+        'code': 'comms.activity.submitted',
+        'label': 'A communication activity is waiting for your approval',
+        'category': 'COMMS', 'severity': 'ACTION',
+        'audience_rule': {'kind': 'actor'},
+    },
+    {
+        'code': 'comms.activity.decided',
+        'label': 'Your communication activity was approved or rejected',
+        'category': 'COMMS', 'severity': 'INFO',
+        'audience_rule': {'kind': 'subject'},
+    },
 ]
 
 

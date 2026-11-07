@@ -20,6 +20,7 @@ def bind_service_signals():
         ('approval_service.finalized', access_request.on_approval_finalized),
         ('access_request_service.provision', access_request.on_provisioned),
         ('communications_post_service.publish', communications.on_post_published),
+        ('communications_activity_service.transition', communications.on_activity_transition),
         ('task_service.create', case_management.on_case_task_created),
         ('task_service.complete_task', case_management.on_data_update_task_complete),
         ('case_payment_service.update_details', case_management.on_payment_change),

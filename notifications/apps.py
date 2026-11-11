@@ -32,6 +32,9 @@ DEFAULT_CONFIG = {
         'communications.CommunicationActivity': '/communications/activities/activity/{id}',
         'tasaf_payment.MuseChangeRequest': '/tasafPayment/workspace?tab=muse&integration={integration}',
     },
+    'approver_routes': {
+        'training.Training': '/approval/request/{request_id}',
+    },
     # used when the domain has no mapping, or the domain record id is unknown
     'fallback_approval_route': '/approval/request/{request_id}',
 }
@@ -288,6 +291,7 @@ class NotificationsConfig(AppConfig):
     fanout_max_recipients = 500
     seed_types = True
     domain_routes = {}
+    approver_routes = {}
     fallback_approval_route = '/approval/request/{request_id}'
 
     def ready(self):

@@ -11,18 +11,20 @@ class _Blank(dict):
         return ''
 
 
-def route_for_approval(approval_request):
+def route_for_approval(approval_request, for_approver=False):
     try:
         domain = getattr(approval_request, 'domain', None) or getattr(
             getattr(approval_request, 'flow', None), 'domain', None)
         object_id = getattr(approval_request, 'object_id', None)
         routes = getattr(NotificationsConfig, 'domain_routes', {}) or {}
+        if for_approver:
+            routes = {**routes, **(getattr(NotificationsConfig, 'approver_routes', {}) or {})}
 
         template = routes.get(domain) if domain else None
         if template and object_id:
             summary = getattr(approval_request, 'summary', None) or {}
             values = {k: v for k, v in summary.items() if isinstance(v, (str, int))} if isinstance(summary, dict) else {}
-            return template.format_map(_Blank(values, id=object_id))
+            return template.format_map(_Blank(values, id=object_id, request_id=approval_request.id))
 
         fallback = getattr(NotificationsConfig, 'fallback_approval_route',
                            '/approval/request/{request_id}')

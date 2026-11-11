@@ -105,7 +105,7 @@ def _notify_current_step(request_id, kwargs):
         type_code=STEP_ASSIGNED,
         subject=f'{title} is awaiting your approval',
         body=_body(obj, flow),
-        target_route=route_for_approval(obj),
+        target_route=route_for_approval(obj, for_approver=True),
         source_ref=f'approval:{request_id}',
         group_key=key,
         actor=_actor(kwargs),
@@ -177,14 +177,25 @@ def _close_all(kwargs):
         logger.warning('notifications: closing approval notices failed', exc_info=True)
 
 
+def _decision_note(decision):
+    def note(obj):
+        from approval.models import ApprovalDecision
+        comment = (ApprovalDecision.objects.filter(
+            step__approval_request=obj, decision=decision, is_deleted=False)
+            .order_by('-decided_at').values_list('comment', flat=True).first())
+        return f'Reason: {comment}' if comment else None
+    return note
+
+
 def on_rejected(**kwargs):
     _close_all(kwargs)
-    _notify_subject(kwargs, 'approval.rejected', '{label} was rejected')
+    _notify_subject(kwargs, 'approval.rejected', '{label} was rejected', extra=_decision_note('REJECTED'))
 
 
 def on_returned(**kwargs):
     _close_all(kwargs)
-    _notify_subject(kwargs, 'approval.returned', '{label} was returned for correction')
+    _notify_subject(kwargs, 'approval.returned', '{label} was returned for correction',
+                    extra=_decision_note('RETURNED'))
 
 
 def _cancel_reason(obj):

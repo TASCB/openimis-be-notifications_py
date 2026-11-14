@@ -32,6 +32,9 @@ DEFAULT_CONFIG = {
         'communications.CommunicationActivity': '/communications/activities/activity/{id}',
         'tasaf_payment.MuseChangeRequest': '/tasafPayment/workspace?tab=muse&integration={integration}',
     },
+    'approver_routes': {
+        'training.Training': '/approval/request/{request_id}',
+    },
     # used when the domain has no mapping, or the domain record id is unknown
     'fallback_approval_route': '/approval/request/{request_id}',
 }
@@ -258,6 +261,84 @@ DEFAULT_TYPES = [
         'category': 'COMMS', 'severity': 'INFO',
         'audience_rule': {'kind': 'subject'},
     },
+    {
+        'code': 'comms.activity.submitted',
+        'label': 'A communication activity is waiting for your approval',
+        'category': 'COMMS', 'severity': 'ACTION',
+        'audience_rule': {'kind': 'actor'},
+    },
+    {
+        'code': 'comms.activity.decided',
+        'label': 'Your communication activity was approved or rejected',
+        'category': 'COMMS', 'severity': 'INFO',
+        'audience_rule': {'kind': 'subject'},
+    },
+    {
+        'code': 'pmt.run.completed',
+        'label': 'A PMT cutoff adjustment or rerun you started finished',
+        'category': 'SYSTEM', 'severity': 'INFO',
+        'audience_rule': {'kind': 'subject'},
+    },
+    {
+        'code': 'pmt.run.failed',
+        'label': 'A PMT cutoff adjustment or rerun you started failed',
+        'category': 'SYSTEM', 'severity': 'WARNING',
+        'audience_rule': {'kind': 'subject'},
+    },
+    {
+        'code': 'import.upload.completed',
+        'label': 'Your registry upload finished',
+        'category': 'IMPORT', 'severity': 'INFO',
+        'audience_rule': {'kind': 'subject'},
+    },
+    {
+        'code': 'import.upload.partial',
+        'label': 'Your registry upload finished with skipped rows',
+        'category': 'IMPORT', 'severity': 'WARNING',
+        'audience_rule': {'kind': 'subject'},
+    },
+    {
+        'code': 'import.upload.failed',
+        'label': 'Your registry upload failed',
+        'category': 'IMPORT', 'severity': 'WARNING',
+        'audience_rule': {'kind': 'subject'},
+    },
+    {
+        'code': 'import.upload.waiting',
+        'label': 'Your registry upload was sent for approval',
+        'category': 'IMPORT', 'severity': 'INFO',
+        'audience_rule': {'kind': 'subject'},
+    },
+    {
+        'code': 'import.legacy.completed',
+        'label': 'Your PSSN API import finished',
+        'category': 'IMPORT', 'severity': 'INFO',
+        'audience_rule': {'kind': 'subject'},
+    },
+    {
+        'code': 'import.legacy.partial',
+        'label': 'Your PSSN API import finished with errors',
+        'category': 'IMPORT', 'severity': 'WARNING',
+        'audience_rule': {'kind': 'subject'},
+    },
+    {
+        'code': 'import.legacy.failed',
+        'label': 'Your PSSN API import failed',
+        'category': 'IMPORT', 'severity': 'WARNING',
+        'audience_rule': {'kind': 'subject'},
+    },
+    {
+        'code': 'registry.task.submitted',
+        'label': 'A registry task (upload, PMT formula, PCT enrolment, duplicates) waits for your group',
+        'category': 'APPROVAL', 'severity': 'ACTION',
+        'audience_rule': {'kind': 'actor'},
+    },
+    {
+        'code': 'registry.task.decided',
+        'label': 'A registry task you submitted was approved or rejected',
+        'category': 'APPROVAL', 'severity': 'INFO',
+        'audience_rule': {'kind': 'subject'},
+    },
 ]
 
 
@@ -276,6 +357,7 @@ class NotificationsConfig(AppConfig):
     fanout_max_recipients = 500
     seed_types = True
     domain_routes = {}
+    approver_routes = {}
     fallback_approval_route = '/approval/request/{request_id}'
 
     def ready(self):

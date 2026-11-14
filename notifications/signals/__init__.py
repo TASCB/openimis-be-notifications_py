@@ -8,7 +8,7 @@ def bind_service_signals():
     from core.service_signals import ServiceSignalBindType
     from core.signals import bind_service_signal
     from notifications.adapters import (
-        access_request, api_etl, approval, case_management, communications)
+        access_request, api_etl, approval, case_management, communications, registry)
 
     bindings = (
         ('api_etl_service.import_finished', api_etl.on_import_finished_signal),
@@ -20,6 +20,7 @@ def bind_service_signals():
         ('approval_service.finalized', access_request.on_approval_finalized),
         ('access_request_service.provision', access_request.on_provisioned),
         ('communications_post_service.publish', communications.on_post_published),
+        ('communications_activity_service.transition', communications.on_activity_transition),
         ('task_service.create', case_management.on_case_task_created),
         ('task_service.complete_task', case_management.on_data_update_task_complete),
         ('case_payment_service.update_details', case_management.on_payment_change),
@@ -28,6 +29,11 @@ def bind_service_signals():
         ('case_household_service.deactivate_household', case_management.on_household_deactivated),
         ('case_followup_service.add', case_management.on_follow_up_added),
         ('case_followup_service.update_status', case_management.on_follow_up_status),
+        ('individual_service.pmt_run_finished', registry.on_pmt_run_finished),
+        ('individual_service.upload_finished', registry.on_upload_finished),
+        ('legacy_individual_service.api_import_finished', registry.on_legacy_api_import_finished),
+        ('task_service.create', registry.on_task_created),
+        ('task_service.complete_task', registry.on_task_completed),
     )
     for name, handler in bindings:
         try:

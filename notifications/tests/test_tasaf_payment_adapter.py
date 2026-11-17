@@ -95,3 +95,44 @@ class GepgAnsweredAdapterTest(SimpleTestCase):
         self.assertEqual(call.kwargs['subject'], 'GePG has not answered TV2026102714 (MPESA) after 30 minutes')
         self.assertIn('f690e0f8', call.kwargs['body'])
         self.assertEqual(call.kwargs['group_key'], 'gepg.unanswered:TV2026102714')
+
+
+class WithdrawalEventAdapterTest(SimpleTestCase):
+    def notices(self, event, **kw):
+        with mock.patch.object(tasaf_payment, 'NotificationService') as service:
+            tasaf_payment.on_withdrawal_event(event=event, user='pct1', **kw)
+        return [(c.args[0], c.kwargs) for c in service.return_value.notify.call_args_list]
+
+    def test_a_clean_send_gives_one_received_notice(self):
+        notices = self.notices('sent', run='R1', received=2, rejected=0, waiting=0, failed=0)
+        self.assertEqual([code for code, _ in notices], ['payment.muse.withdrawal_received'])
+        self.assertEqual(notices[0][1]['subject'], 'MUSE accepted 2 unapplied withdrawal(s)')
+        self.assertEqual((notices[0][1]['actor'], notices[0][1]['group_key']), ('pct1', 'withdraw:R1:RECEIVED'))
+
+    def test_refused_and_unsent_payees_give_a_warning_with_the_reasons(self):
+        notices = self.notices('sent', run='R2', received=1, rejected=1, waiting=0, failed=1,
+                               reason='service not configured on MUSE', error='GovESB failed')
+        codes = [code for code, _ in notices]
+        self.assertEqual(codes, ['payment.muse.withdrawal_received', 'payment.muse.withdrawal_problem'])
+        body = notices[1][1]['body']
+        self.assertIn('1 refused by MUSE: service not configured on MUSE', body)
+        self.assertIn('1 not sent (GovESB failed)', body)
+
+    def test_payees_without_a_reference_are_reported(self):
+        (code, kwargs), = self.notices('sent', run='R4', received=0, rejected=0, waiting=0, failed=0, skipped=1)
+        self.assertEqual(code, 'payment.muse.withdrawal_problem')
+        self.assertIn('1 without a payment reference', kwargs['body'])
+
+    def test_only_waiting_payees_give_no_notice_yet(self):
+        self.assertEqual(self.notices('sent', run='R3', received=0, rejected=0, waiting=2, failed=0), [])
+
+    def test_a_late_refusal_names_the_payment(self):
+        (code, kwargs), = self.notices('answered', msg_id='TW1', status='REJECTED', reason='Bad reference',
+                                       references=['XP231001200045'])
+        self.assertEqual(code, 'payment.muse.withdrawal_problem')
+        self.assertEqual(kwargs['subject'], 'MUSE refused the withdrawal of XP231001200045')
+
+    def test_unanswered_payees_list_the_message_ids(self):
+        (code, kwargs), = self.notices('unanswered', run='S1', count=1, minutes=30, msg_ids=['TW1'])
+        self.assertEqual(kwargs['subject'], 'MUSE has not answered 1 unapplied withdrawal(s) after 30 minutes')
+        self.assertIn('TW1', kwargs['body'])

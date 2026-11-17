@@ -186,6 +186,57 @@ def on_gepg_unanswered(sender=None, request=None, minutes=None, **kwargs):
     )
 
 
+WITHDRAWAL_DONE = ('Final: the unapplied record is closed at MUSE. The household is paid on a normal paylist '
+                   'once its account is verified again.')
+
+
+def on_withdrawal_event(sender=None, event=None, user=None, **kw):
+    service = NotificationService()
+    common = {'target_route': UNAPPLIED_ROUTE, 'actor': user}
+    if event == 'sent':
+        run = kw.get('run') or ''
+        received, rejected, waiting, failed, skipped = (
+            int(kw.get(k) or 0) for k in ('received', 'rejected', 'waiting', 'failed', 'skipped'))
+        if received:
+            service.notify('payment.muse.withdrawal_received',
+                           subject=f'MUSE accepted {received} unapplied withdrawal(s)', body=WITHDRAWAL_DONE,
+                           source_ref=run, group_key=f'withdraw:{run}:RECEIVED', **common)
+        problems = []
+        if rejected:
+            problems.append(f'{rejected} refused by MUSE' + (f': {kw.get("reason")}' if kw.get('reason') else ''))
+        if failed:
+            problems.append(f'{failed} not sent' + (f' ({kw.get("error")})' if kw.get('error') else ''))
+        if skipped:
+            problems.append(f'{skipped} without a payment reference')
+        if waiting:
+            problems.append(f'{waiting} sent, waiting for MUSE')
+        if rejected or failed or skipped:
+            service.notify('payment.muse.withdrawal_problem',
+                           subject=f'{rejected + failed + skipped} unapplied withdrawal(s) did not go through',
+                           body='; '.join(problems) + '. They are back in the withdraw tab.',
+                           source_ref=run, group_key=f'withdraw:{run}:PROBLEM', **common)
+    elif event == 'answered':
+        msg_id, references = kw.get('msg_id') or '', ', '.join(r for r in kw.get('references') or [] if r)
+        if kw.get('status') == 'REJECTED':
+            service.notify('payment.muse.withdrawal_problem',
+                           subject=f'MUSE refused the withdrawal of {references or msg_id}',
+                           body=f"{kw.get('reason') or 'No reason given'}. It is back in the withdraw tab.",
+                           source_ref=msg_id, group_key=f'withdraw:{msg_id}:REJECTED', **common)
+        else:
+            service.notify('payment.muse.withdrawal_received',
+                           subject=f'MUSE accepted the withdrawal of {references or msg_id}', body=WITHDRAWAL_DONE,
+                           source_ref=msg_id, group_key=f'withdraw:{msg_id}:RECEIVED', **common)
+    elif event == 'unanswered':
+        count, ids = int(kw.get('count') or 0), [i for i in kw.get('msg_ids') or [] if i]
+        service.notify('payment.muse.withdrawal_problem',
+                       subject=f'MUSE has not answered {count} unapplied withdrawal(s) '
+                               f'after {int(kw.get("minutes") or 0)} minutes',
+                       body='Give MUSE the message IDs to trace them: ' + ', '.join(ids[:10])
+                            + (f' and {len(ids) - 10} more' if len(ids) > 10 else ''),
+                       source_ref=kw.get('run') or '', group_key=f'withdraw:unanswered:{kw.get("run") or ""}',
+                       **common)
+
+
 ACCOUNT_CHECK_ROUTE = '/tasafPayment/workspace?tab=verification&verification=check'
 
 

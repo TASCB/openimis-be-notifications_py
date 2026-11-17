@@ -77,6 +77,11 @@ PAYMENT_AUDIENCE = {
 UNAPPLIED_AUDIENCE = {'kind': 'right', 'right': '270402', 'exclude_actor': False}
 UNAPPLIED_MANAGER_AUDIENCE = {'kind': 'right', 'right': '270403', 'exclude_actor': False}
 
+WITHDRAWAL_AUDIENCE = {
+    'kind': 'union',
+    'of': [UNAPPLIED_AUDIENCE, UNAPPLIED_MANAGER_AUDIENCE, {'kind': 'actor'}],
+}
+
 DEFAULT_TYPES = [
     {
         'code': 'payment.muse.batch_status',
@@ -119,6 +124,18 @@ DEFAULT_TYPES = [
         'label': 'Unapplied payments are still undecided after the reminder delay',
         'category': 'SYSTEM', 'severity': 'ACTION',
         'audience_rule': UNAPPLIED_MANAGER_AUDIENCE,
+    },
+    {
+        'code': 'payment.muse.withdrawal_received',
+        'label': 'MUSE accepted unapplied withdrawals',
+        'category': 'SYSTEM', 'severity': 'INFO',
+        'audience_rule': WITHDRAWAL_AUDIENCE,
+    },
+    {
+        'code': 'payment.muse.withdrawal_problem',
+        'label': 'Unapplied withdrawals were refused, not sent, or not answered by MUSE',
+        'category': 'SYSTEM', 'severity': 'WARNING',
+        'audience_rule': WITHDRAWAL_AUDIENCE,
     },
     {
         'code': 'payment.muse.closed',

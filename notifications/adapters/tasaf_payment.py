@@ -150,7 +150,7 @@ def on_accounts_withdrawn(sender=None, accounts=None, user=None, **kwargs):
         )
 
 
-GEPG_REQUESTS_ROUTE = '/tasafPayment/workspace?tab=verification&verification=gepg'
+GEPG_REQUESTS_ROUTE = '/tasafPayment/workspace?tab=muse&integration=gepg'
 DECISION_TEXT = (('VERIFIED', 'verified'), ('FAILED', 'failed'), ('MANUAL', 'need review'))
 
 

@@ -83,7 +83,7 @@ class GepgAnsweredAdapterTest(SimpleTestCase):
         self.assertEqual(call.args[0], 'payment.gepg.answered')
         self.assertEqual(call.kwargs['subject'], 'GePG answered TV2026102209 (MPESA): 3 verified, 1 failed, 0 need review')
         self.assertEqual(call.kwargs['body'], '2 account(s) still waiting for an answer.')
-        self.assertEqual(call.kwargs['target_route'], '/tasafPayment/workspace?tab=verification&verification=gepg')
+        self.assertEqual(call.kwargs['target_route'], '/tasafPayment/workspace?tab=muse&integration=gepg')
 
     def test_an_unanswered_request_names_what_to_trace(self):
         request = SimpleNamespace(acc_verif_id='TV2026102714', fsp_code='MPESA', item_count=4,

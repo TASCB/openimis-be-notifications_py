@@ -27,11 +27,15 @@ def _actor(kwargs):
 
 
 def _approvers_for_step(step):
-    """Who may sign this step: the same people as the engine's tasks inbox."""
+    """Who may sign this step, narrowed to the step's assigned role when it has one."""
     from approval.services import ApprovalService
-    from core.models import User
+    from core.models import User, UserRole
     ids = ApprovalService(None).resolve_step_approvers(step)
-    return list(User.objects.filter(id__in=ids)) if ids else []
+    users = User.objects.filter(id__in=ids) if ids else User.objects.none()
+    if step.assigned_role_id:
+        users = users.filter(i_user_id__in=UserRole.objects.filter(
+            role_id=step.assigned_role_id, validity_to__isnull=True).values('user_id'))
+    return list(users)
 
 
 def _describe(obj):

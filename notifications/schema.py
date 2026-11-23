@@ -42,8 +42,19 @@ def narrow_notifications(qs, module=None, search=None):
     return qs
 
 
+def _own(queryset, info, field):
+    user = getattr(info.context, 'user', None)
+    if not user or user.is_anonymous:
+        return queryset.none()
+    return queryset.filter(**{field: user})
+
+
 class NotificationGQLType(DjangoObjectType):
     type_code = graphene.String()
+
+    @classmethod
+    def get_queryset(cls, queryset, info):
+        return _own(queryset, info, 'recipient')
 
     class Meta:
         model = Notification
@@ -61,6 +72,10 @@ class NotificationGQLType(DjangoObjectType):
 
 
 class NotificationPreferenceGQLType(DjangoObjectType):
+    @classmethod
+    def get_queryset(cls, queryset, info):
+        return _own(queryset, info, 'user')
+
     class Meta:
         model = NotificationPreference
         interfaces = (graphene.relay.Node,)

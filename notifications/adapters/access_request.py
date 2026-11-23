@@ -50,7 +50,6 @@ def on_provisioned(**kwargs):
             subject='Your TASAF MIS account has been created',
             body=('Your account is ready. If you did not receive a set-password email, '
                   'contact ICT to have it re-sent.'),
-            target_route='/access-requests',
             source_ref=f'access_request:{req.id}',
             group_key=f'account.provisioned:{req.id}',
             subject_user=req.created_user,

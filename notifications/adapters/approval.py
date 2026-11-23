@@ -27,20 +27,11 @@ def _actor(kwargs):
 
 
 def _approvers_for_step(step):
-    """Who can act on this step: holders of ``required_right``, narrowed to ``assigned_role``
-    when the step carries one, so the notice reaches the people who can actually sign."""
-    from notifications.audience import _users_with_right
-    right = getattr(step, 'required_right', None)
-    if not right:
-        return []
-    users = list(_users_with_right(right))
-    role_id = getattr(step, 'assigned_role_id', None)
-    if role_id:
-        from core.models import UserRole
-        in_role = set(UserRole.objects.filter(
-            role_id=role_id, validity_to__isnull=True).values_list('user_id', flat=True))
-        users = [u for u in users if u.i_user_id in in_role]
-    return users
+    """Who may sign this step: the same people as the engine's tasks inbox."""
+    from approval.services import ApprovalService
+    from core.models import User
+    ids = ApprovalService(None).resolve_step_approvers(step)
+    return list(User.objects.filter(id__in=ids)) if ids else []
 
 
 def _describe(obj):

@@ -258,3 +258,21 @@ def on_account_check_done(sender=None, job=None, **kwargs):
         group_key=f'account_check.done:{job.uuid}',
         subject_user=uploader,
     )
+
+
+def on_unapplied_bulk_done(sender=None, user=None, result=None, **kwargs):
+    if user is None or not result:
+        return
+    decided = sum((result.get('decided') or {}).values())
+    refused = sum(r['count'] for r in result.get('refused') or [])
+    NotificationService().notify(
+        'payment.unapplied.bulk_done',
+        subject=f'Unapplied payments decided: {decided} of {result.get("total", decided + refused)}'
+                + (f', {refused} refused' if refused else ''),
+        body='; '.join(f'{r["count"]}: {r["reason"]}' for r in (result.get('refused') or [])[:3])
+             or 'Every selected payment was decided.',
+        target_route=UNAPPLIED_ROUTE,
+        source_ref=result.get('batch'),
+        group_key=f'unapplied.bulk:{result.get("batch")}',
+        subject_user=user,
+    )

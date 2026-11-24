@@ -103,6 +103,12 @@ DEFAULT_TYPES = [
         'audience_rule': {'kind': 'subject'},
     },
     {
+        'code': 'payment.unapplied.bulk_done',
+        'label': 'A bulk decision on unapplied payments has finished',
+        'category': 'SYSTEM', 'severity': 'INFO',
+        'audience_rule': {'kind': 'subject'},
+    },
+    {
         'code': 'payment.gepg.unanswered',
         'label': 'GePG has not answered an account verification request',
         'category': 'SYSTEM', 'severity': 'WARNING',

@@ -150,7 +150,8 @@ def on_accounts_withdrawn(sender=None, accounts=None, user=None, **kwargs):
         )
 
 
-GEPG_REQUESTS_ROUTE = '/tasafPayment/workspace?tab=muse&integration=gepg'
+GEPG_REQUESTS_ROUTE = '/tasafPayment/verificationResults?verification=requests&channel=gepg'
+TIPS_REQUESTS_ROUTE = '/tasafPayment/verificationResults?verification=requests&channel=tips'
 DECISION_TEXT = (('VERIFIED', 'verified'), ('FAILED', 'failed'), ('MANUAL', 'need review'))
 
 
@@ -183,6 +184,38 @@ def on_gepg_unanswered(sender=None, request=None, minutes=None, **kwargs):
         target_route=GEPG_REQUESTS_ROUTE,
         source_ref=request.acc_verif_id,
         group_key=f'gepg.unanswered:{request.acc_verif_id}',
+    )
+
+
+def on_tips_answered(sender=None, request=None, counts=None, **kwargs):
+    if request is None:
+        return
+    counts = counts or {}
+    parts = [f'{counts.get(code, 0)} {text}' for code, text in DECISION_TEXT]
+    if counts.get('UNCHECKED'):
+        parts.append(f"{counts['UNCHECKED']} not checked (no answer for the account)")
+    waiting = counts.get('PENDING', 0)
+    NotificationService().notify(
+        'payment.tips.answered',
+        subject=f'TIPS answered {request.msg_id} ({request.fsp_code}): ' + ', '.join(parts),
+        body=f'{waiting} account(s) still waiting for an answer.' if waiting else '',
+        target_route=TIPS_REQUESTS_ROUTE,
+        source_ref=request.msg_id,
+        group_key=f'tips.answered:{request.msg_id}:{sum(counts.values()) - waiting}',
+    )
+
+
+def on_tips_unanswered(sender=None, request=None, hours=None, **kwargs):
+    if request is None:
+        return
+    NotificationService().notify(
+        'payment.tips.unanswered',
+        subject=f'TIPS did not answer {request.msg_id} ({request.fsp_code}) within {hours} hours',
+        body=f'{request.item_count} account(s) went back to be sent again. Give MoF the GovESB request ID '
+             f'{request.esb_request_id or request.msg_id} to trace it.',
+        target_route=TIPS_REQUESTS_ROUTE,
+        source_ref=request.msg_id,
+        group_key=f'tips.unanswered:{request.msg_id}',
     )
 
 

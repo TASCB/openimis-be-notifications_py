@@ -115,6 +115,18 @@ DEFAULT_TYPES = [
         'audience_rule': VERIFICATION_AUDIENCE,
     },
     {
+        'code': 'payment.tips.answered',
+        'label': 'TIPS answered an account verification lookup',
+        'category': 'SYSTEM', 'severity': 'INFO',
+        'audience_rule': VERIFICATION_AUDIENCE,
+    },
+    {
+        'code': 'payment.tips.unanswered',
+        'label': 'TIPS did not answer an account verification lookup',
+        'category': 'SYSTEM', 'severity': 'WARNING',
+        'audience_rule': VERIFICATION_AUDIENCE,
+    },
+    {
         'code': 'payment.muse.batch_rejected',
         'label': 'MUSE rejected a paylist',
         'category': 'SYSTEM', 'severity': 'WARNING',

@@ -83,7 +83,7 @@ class GepgAnsweredAdapterTest(SimpleTestCase):
         self.assertEqual(call.args[0], 'payment.gepg.answered')
         self.assertEqual(call.kwargs['subject'], 'GePG answered TV2026102209 (MPESA): 3 verified, 1 failed, 0 need review')
         self.assertEqual(call.kwargs['body'], '2 account(s) still waiting for an answer.')
-        self.assertEqual(call.kwargs['target_route'], '/tasafPayment/workspace?tab=muse&integration=gepg')
+        self.assertEqual(call.kwargs['target_route'], '/tasafPayment/verificationResults?verification=requests&channel=gepg')
 
     def test_an_unanswered_request_names_what_to_trace(self):
         request = SimpleNamespace(acc_verif_id='TV2026102714', fsp_code='MPESA', item_count=4,
@@ -96,6 +96,27 @@ class GepgAnsweredAdapterTest(SimpleTestCase):
         self.assertIn('f690e0f8', call.kwargs['body'])
         self.assertEqual(call.kwargs['group_key'], 'gepg.unanswered:TV2026102714')
 
+
+
+class TipsAdapterTest(SimpleTestCase):
+    def test_the_answer_counts_go_in_the_subject(self):
+        request = SimpleNamespace(msg_id='TASAF_1', fsp_code='TIGOPESA')
+        with mock.patch.object(tasaf_payment, 'NotificationService') as service:
+            tasaf_payment.on_tips_answered(request=request, counts={'VERIFIED': 2, 'MANUAL': 1, 'PENDING': 1})
+        call = service.return_value.notify.call_args
+        self.assertEqual(call.args[0], 'payment.tips.answered')
+        self.assertEqual(call.kwargs['subject'], 'TIPS answered TASAF_1 (TIGOPESA): 2 verified, 0 failed, 1 need review')
+        self.assertEqual(call.kwargs['body'], '1 account(s) still waiting for an answer.')
+        self.assertEqual(call.kwargs['target_route'], '/tasafPayment/verificationResults?verification=requests&channel=tips')
+
+    def test_an_expired_lookup_names_what_to_trace(self):
+        request = SimpleNamespace(msg_id='TASAF_2', fsp_code='MPESA', item_count=3, esb_request_id='155f4526')
+        with mock.patch.object(tasaf_payment, 'NotificationService') as service:
+            tasaf_payment.on_tips_unanswered(request=request, hours=24)
+        call = service.return_value.notify.call_args
+        self.assertEqual(call.args[0], 'payment.tips.unanswered')
+        self.assertEqual(call.kwargs['subject'], 'TIPS did not answer TASAF_2 (MPESA) within 24 hours')
+        self.assertIn('155f4526', call.kwargs['body'])
 
 class WithdrawalEventAdapterTest(SimpleTestCase):
     def notices(self, event, **kw):

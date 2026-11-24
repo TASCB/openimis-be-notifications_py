@@ -63,6 +63,11 @@ def bind_service_signals():
         from tasaf_payment.events import gepg_unanswered
         gepg_unanswered.connect(tasaf_payment.on_gepg_unanswered,
                                 dispatch_uid='notifications.tasaf_payment.gepg_unanswered')
+        from tasaf_payment.events import tips_answered, tips_unanswered
+        tips_answered.connect(tasaf_payment.on_tips_answered,
+                              dispatch_uid='notifications.tasaf_payment.tips_answered')
+        tips_unanswered.connect(tasaf_payment.on_tips_unanswered,
+                                dispatch_uid='notifications.tasaf_payment.tips_unanswered')
         from tasaf_payment.events import withdrawal_event
         withdrawal_event.connect(tasaf_payment.on_withdrawal_event,
                                  dispatch_uid='notifications.tasaf_payment.withdrawal_event')

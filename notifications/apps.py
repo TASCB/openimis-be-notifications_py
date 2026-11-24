@@ -34,6 +34,7 @@ DEFAULT_CONFIG = {
     },
     'approver_routes': {
         'training.Training': '/approval/request/{request_id}',
+        'tasaf_payment.MuseChangeRequest': '/approval/request/{request_id}',
     },
     # used when the domain has no mapping, or the domain record id is unknown
     'fallback_approval_route': '/approval/request/{request_id}',

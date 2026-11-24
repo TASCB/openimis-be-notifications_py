@@ -32,3 +32,13 @@ class ApprovalRouteTest(SimpleTestCase):
         with self._routes():
             route = routing.route_for_approval(self._request('tasaf_payment.Paylist'), for_approver=True)
         self.assertEqual(route, '/tasafPayment/paylist/obj-9')
+
+    def test_a_settings_change_approver_is_sent_to_the_approval_request(self):
+        from notifications.apps import DEFAULT_CONFIG
+        with mock.patch.multiple(routing.NotificationsConfig,
+                                 domain_routes=DEFAULT_CONFIG['domain_routes'],
+                                 approver_routes=DEFAULT_CONFIG['approver_routes']):
+            approver = routing.route_for_approval(self._request('tasaf_payment.MuseChangeRequest'), for_approver=True)
+            requester = routing.route_for_approval(self._request('tasaf_payment.MuseChangeRequest'))
+        self.assertEqual(approver, '/approval/request/req-1')
+        self.assertTrue(requester.startswith('/tasafPayment/workspace?tab=muse'))
